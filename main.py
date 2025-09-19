@@ -305,7 +305,7 @@ async def calc_master_xp(ctx):
 # REMOVA a parte do Flask do seu código atual e use isso no final:
 keep_alive()  # <-- Inicia o servidor Flask
 
-from config import BOT_TOKEN as token
+token = os.getenv("BOT_TOKEN")
 if token is None:
     print("❌ ERRO: BOT_TOKEN não encontrado!")
 else:
