@@ -1,11 +1,11 @@
-            import discord
-            from discord.ext import commands
-            import json
-            import random
-            import asyncio
-            import os
-            from dotenv import load_dotenv
-            from keep_alive import keep_alive
+import discord
+from discord.ext import commands
+import json
+import random
+import asyncio
+import os
+from dotenv import load_dotenv
+from keep_alive import keep_alive
 
             load_dotenv()
 
