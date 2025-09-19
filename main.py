@@ -15,7 +15,9 @@ intents = discord.Intents.default()
 bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
 # Banco de dados simples (JSON) - Persiste fichas e XP
-DATA_FILE = 'cosmo_data.json'
+# Cria diretório data se não existir
+os.makedirs('data', exist_ok=True)
+DATA_FILE = os.path.join('data', 'cosmo_data.json')
 
 def load_data():
     try:
