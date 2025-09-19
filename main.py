@@ -11,7 +11,8 @@ load_dotenv()
 
 
 # Configuração do bot
-intents = discord.Intents.default()
+intents = discord.Intents.all()
+intents.message_content = True  # Adicione esta linha
 bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
 # Banco de dados simples (JSON) - Persiste fichas e XP
