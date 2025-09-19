@@ -1,0 +1,19 @@
+run = "python main.py"
+language = "python3"
+entrypoint = "main.py"
+
+[packages]
+python3 = "latest"
+
+[env]
+BOT_TOKEN = "$BOT_TOKEN"
+
+[deployment]
+deploymentTarget = "cloudrun"
+
+[agent]
+expertMode = false
+
+[[ports]]
+localPort = 8080
+externalPort = 80
