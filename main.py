@@ -9,12 +9,12 @@ from keep_alive import keep_alive
 
 load_dotenv()
 
-# Configuração do bot
+# --- Configuração do bot ---
 intents = discord.Intents.all()
 intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
-# Banco de dados simples (JSON) - Persiste fichas e XP
+# --- Banco de dados simples (JSON) ---
 os.makedirs('data', exist_ok=True)
 DATA_FILE = os.path.join('data', 'cosmo_data.json')
 
@@ -29,7 +29,7 @@ def save_data(data):
     with open(DATA_FILE, 'w') as f:
         json.dump(data, f, indent=4)
 
-# Dados por patente
+# --- Dados e mitigação por patente ---
 PATENT_DICE = {
     'Aspirante': 4,
     'Bronze': 6,
@@ -39,7 +39,6 @@ PATENT_DICE = {
     'Divindade': 20
 }
 
-# Mitigação por patente
 MITIGATION = {
     'Bronze': 2,
     'Prata': 4,
@@ -48,14 +47,29 @@ MITIGATION = {
     'Divindade': 10
 }
 
+# --- Eventos do bot ---
 @bot.event
 async def on_ready():
     print(f'CosmoBot conectado como {bot.user} - Pronto para a Guerra Santa!')
 
-# --- COMANDOS PARA NPC ---
+@bot.event
+async def on_message(message):
+    if message.author == bot.user:
+        return
+    print(f"📩 Mensagem recebida: {message.content} - Autor: {message.author}")
+    await bot.process_commands(message)
+
+@bot.event
+async def on_command_error(ctx, error):
+    print(f"❌ Erro no comando: {error}")
+    try:
+        await ctx.send(f"⚠️ Erro: {error}")
+    except Exception:
+        pass
+
+# --- COMANDOS DE NPC ---
 @bot.command()
 async def create_npc(ctx, npc_id: int, name, patent, forca: int, agi: int, cos: int, von: int, pv: int):
-    """Cria um NPC com ID customizado"""
     data = load_data()
     if str(npc_id) in data['npcs']:
         await ctx.send("❌ NPC com esse ID já existe!")
@@ -75,7 +89,6 @@ async def create_npc(ctx, npc_id: int, name, patent, forca: int, agi: int, cos: 
 
 @bot.command()
 async def view_npc(ctx, npc_id: int):
-    """Exibe informações de um NPC pelo ID"""
     data = load_data()
     npc = data['npcs'].get(str(npc_id))
     if not npc:
@@ -89,7 +102,6 @@ async def view_npc(ctx, npc_id: int):
 
 @bot.command()
 async def delete_npc(ctx, npc_id: int):
-    """Deleta NPC pelo ID"""
     data = load_data()
     if str(npc_id) in data['npcs']:
         name = data['npcs'][str(npc_id)]['name']
@@ -148,16 +160,12 @@ async def sheet(ctx):
     embed.add_field(name="Golpes", value=', '.join(char['special_moves']) or 'Nenhum', inline=False)
     await ctx.send(embed=embed)
 
-# --- COMANDOS DE ATUALIZAÇÃO ---
 @bot.command()
 async def add_move(ctx, *, move_name):
     data = load_data()
     player_id = str(ctx.author.id)
     if player_id not in data['players']:
         await ctx.send("❌ Crie uma ficha primeiro com !create_character")
-        return
-    if move_name in data['players'][player_id]['special_moves']:
-        await ctx.send("❌ Golpe já adicionado!")
         return
     data['players'][player_id]['special_moves'].append(move_name)
     save_data(data)
@@ -169,9 +177,6 @@ async def add_talent(ctx, *, talent_name):
     player_id = str(ctx.author.id)
     if player_id not in data['players']:
         await ctx.send("❌ Crie uma ficha primeiro com !create_character")
-        return
-    if talent_name in data['players'][player_id]['talents']:
-        await ctx.send("❌ Talento já adicionado!")
         return
     data['players'][player_id]['talents'].append(talent_name)
     save_data(data)
@@ -202,7 +207,7 @@ async def update_hp(ctx, new_hp: int):
     save_data(data)
     await ctx.send(f"✅ PV atualizado para {new_hp}!")
 
-# --- COMANDOS DE ROLAGEM ---
+# --- COMANDOS DE AÇÃO ---
 @bot.command()
 async def roll(ctx, attribute, *, description="Ação genérica"):
     data = load_data()
@@ -242,7 +247,6 @@ async def initiative(ctx):
     result = roll_value + char['von']
     await ctx.send(f"⚡ **Iniciativa de {char['name']}**: 1d{die} ({roll_value}) + VON ({char['von']}) = **{result}**")
 
-# --- COMANDOS DE ATAQUE ---
 @bot.command()
 async def attack_physical(ctx, target_id: int):
     data = load_data()
@@ -251,20 +255,16 @@ async def attack_physical(ctx, target_id: int):
         await ctx.send("❌ Ficha não encontrada!")
         return
     char = data['players'][player_id]
-
-    target = data['players'].get(str(target_id)) or data['npcs'].get(str(target_id))
-    if not target:
-        await ctx.send("❌ Alvo não encontrado!")
-        return
-
     die = PATENT_DICE.get(char['patent'], 6)
     hit_roll = random.randint(1, die) + char['agi']
     damage_roll = random.randint(1, 4) + char['for']
+    target = data['npcs'].get(str(target_id), {'agi': 5, 'pv': 20, 'patent': 'Bronze'})
     target_agi = target.get('agi', 5)
     mitigation = MITIGATION.get(target.get('patent', 'Bronze'), 0)
     if hit_roll >= target_agi:
         final_damage = max(0, damage_roll - mitigation)
         target['pv'] = max(0, target.get('pv', 20) - final_damage)
+        data['npcs'][str(target_id)] = target
         save_data(data)
         await ctx.send(f"👊 **{char['name']} acerta!** Dano: {damage_roll} - Mitig. ({mitigation}) = **{final_damage}** | PV alvo: {target['pv']}")
     else:
@@ -282,7 +282,6 @@ async def special_move(ctx, *, move_info):
     except ValueError:
         await ctx.send("❌ Target_id deve ser um número!")
         return
-
     data = load_data()
     player_id = str(ctx.author.id)
     if player_id not in data['players']:
@@ -292,18 +291,12 @@ async def special_move(ctx, *, move_info):
     if char['patent'] == 'Aspirante':
         await ctx.send("❌ Aspirantes não usam golpes especiais!")
         return
-
-    target = data['players'].get(str(target_id)) or data['npcs'].get(str(target_id))
-    if not target:
-        await ctx.send("❌ Alvo não encontrado!")
-        return
-
     die = PATENT_DICE.get(char['patent'], 6)
     will_test = random.randint(1, die) + char['von']
+    target = data['npcs'].get(str(target_id), {'patent': 'Bronze', 'pv': 20})
     target_patent = target.get('patent', 'Bronze')
     patent_order = list(PATENT_DICE.keys())
     dc = 10 + patent_order.index(target_patent) * 2 if target_patent in patent_order else 10
-
     if will_test >= dc:
         dice_count_map = {'Bronze': 2, 'Prata': 3, 'Ouro': 3, 'Semideus': 4, 'Divindade': 5}
         dice_count = dice_count_map.get(char['patent'], 2)
@@ -311,13 +304,13 @@ async def special_move(ctx, *, move_info):
         mitigation = MITIGATION.get(target_patent, 0)
         final_damage = max(0, damage - mitigation)
         target['pv'] = max(0, target.get('pv', 20) - final_damage)
+        data['npcs'][str(target_id)] = target
         save_data(data)
         await ctx.send(f"🌌 **{char['name']} usa {move_name}!** Sucesso! Dano: **{final_damage}** | PV alvo: {target['pv']}")
     else:
         bonus_damage = char['cos'] // 2
         await ctx.send(f"🌌 **{char['name']} falha em {move_name}!** Rolagem: {will_test} vs DC {dc} | Dano fraco: {bonus_damage}")
 
-# --- COMANDOS DE XP ---
 @bot.command()
 async def add_xp(ctx, *args):
     data = load_data()
@@ -355,29 +348,42 @@ async def calc_master_xp(ctx):
     embed.add_field(name="Cavaleiro de Ouro", value=gold_xp, inline=True)
     await ctx.send(embed=embed)
 
-# --- LOGS E ERROS ---
-@bot.event
-async def on_message(message):
-    if message.author == bot.user:
-        return
-    print(f"📩 Mensagem recebida: {message.content} - Autor: {message.author}")
-    await bot.process_commands(message)
+# --- COMANDO DE AJUDA ---
+@bot.command()
+async def help(ctx):
+    embed = discord.Embed(
+        title="📜 CosmoBot - Lista de Comandos",
+        description="Comandos para o RPG de Cavaleiros do Zodíaco. Use `!` antes de cada um.",
+        color=0xFFD700
+    )
+    # Comandos jogador
+    embed.add_field(name="!create_character [nome] [signo] [patente] [for] [agi] [cos] [von]", value="Cria uma ficha", inline=False)
+    embed.add_field(name="!sheet", value="Exibe sua ficha", inline=False)
+    embed.add_field(name="!add_move [nome_do_golpe]", value="Adiciona golpe especial", inline=False)
+    embed.add_field(name="!add_talent [nome_do_talento]", value="Adiciona talento", inline=False)
+    embed.add_field(name="!remove_move [nome_do_golpe]", value="Remove golpe especial", inline=False)
+    embed.add_field(name="!update_hp [novo_pv]", value="Atualiza PV", inline=False)
+    embed.add_field(name="!roll [atributo] [descrição]", value="Rola dado", inline=False)
+    embed.add_field(name="!initiative", value="Calcula iniciativa", inline=False)
+    embed.add_field(name="!attack_physical [target_id]", value="Ataque físico", inline=False)
+    embed.add_field(name="!special_move [nome] [target_id]", value="Golpe especial", inline=False)
+    embed.add_field(name="!add_xp [valores]", value="Adiciona XP", inline=False)
+    embed.add_field(name="!calc_master_xp", value="XP para Mestre/Ouro", inline=False)
 
-@bot.event
-async def on_command_error(ctx, error):
-    print(f"❌ Erro no comando: {error}")
+    # Comandos NPC
+    embed.add_field(name="!create_npc [id] [nome] [patente] [for] [agi] [cos] [von] [pv]", value="Cria NPC", inline=False)
+    embed.add_field(name="!view_npc [id]", value="Exibe NPC", inline=False)
+    embed.add_field(name="!delete_npc [id]", value="Deleta NPC", inline=False)
+
+    embed.set_footer(text="CosmoBot - Protegendo Athena!")
     try:
-        await ctx.send(f"⚠️ Erro: {error}")
-    except Exception:
-        pass
+        await ctx.author.send(embed=embed)
+        await ctx.send(f"📩 {ctx.author.mention}, comandos enviados por DM!")
+    except discord.Forbidden:
+        await ctx.send("⚠️ Ative DMs de servidores para ver os comandos!")
 
-# Mantém o bot vivo (Replit / Koyeb)
+# --- MANTER BOT ATIVO NO REPLIT ---
 keep_alive()
 
-# Executar bot
-token = os.getenv("BOT_TOKEN")
-if token is None:
-    print("❌ ERRO: BOT_TOKEN não encontrado!")
-else:
-    print("✅ Token encontrado, iniciando bot...")
-    bot.run(token)
+# --- INICIAR BOT ---
+bot.run(os.getenv("DISCORD_TOKEN"))
