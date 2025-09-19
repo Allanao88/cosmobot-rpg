@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 from keep_alive import keep_alive
 
+# Carregar variáveis do ambiente (.env)
 load_dotenv()
 
 # Configuração do bot
@@ -48,11 +49,12 @@ MITIGATION = {
     'Divindade': 10
 }
 
+# Evento inicial
 @bot.event
 async def on_ready():
-    print(f'CosmoBot conectado como {bot.user} - Pronto para a Guerra Santa!')
+    print(f'⚔️ CosmoBot conectado como {bot.user} - Pronto para a Guerra Santa!')
 
-# Comando: Ajuda (atualizado com novos comandos)
+# Comando: Ajuda
 @bot.command()
 async def help(ctx):
     embed = discord.Embed(
@@ -65,84 +67,42 @@ async def help(ctx):
         value="Cria uma ficha. Ex: `!create_character Seiya Pégaso Aspirante 3 3 2 2`",
         inline=False
     )
-    embed.add_field(
-        name="!sheet",
-        value="Exibe sua ficha. Ex: `!sheet`",
-        inline=False
-    )
-    embed.add_field(
-        name="!add_move [nome_do_golpe]",
-        value="Adiciona golpe especial. Ex: `!add_move Meteoro de Pégaso`",
-        inline=False
-    )
-    embed.add_field(
-        name="!add_talent [nome_do_talento]",
-        value="Adiciona talento. Ex: `!add_talent Sentido Cosmo`",
-        inline=False
-    )
-    embed.add_field(
-        name="!remove_move [nome_do_golpe]",
-        value="Remove golpe especial. Ex: `!remove_move Meteoro`",
-        inline=False
-    )
-    embed.add_field(
-        name="!update_hp [novo_pv]",
-        value="Atualiza PV. Ex: `!update_hp 100`",
-        inline=False
-    )
-    embed.add_field(
-        name="!roll [atributo] [descrição]",
-        value="Rola dado. Ex: `!roll COS Explosão estelar`",
-        inline=False
-    )
-    embed.add_field(
-        name="!initiative",
-        value="Calcula iniciativa. Ex: `!initiative`",
-        inline=False
-    )
-    embed.add_field(
-        name="!attack_physical [target_id]",
-        value="Ataque físico. Ex: `!attack_physical 123`",
-        inline=False
-    )
-    embed.add_field(
-        name="!special_move [nome] [target_id]",
-        value="Golpe especial. Ex: `!special_move Meteoro 123`",
-        inline=False
-    )
-    embed.add_field(
-        name="!add_xp [valores]",
-        value="Adiciona XP. Ex: `!add_xp 40 10`",
-        inline=False
-    )
-    embed.add_field(
-        name="!calc_master_xp",
-        value="XP para Mestre/Ouro. Ex: `!calc_master_xp`",
-        inline=False
-    )
+    embed.add_field(name="!sheet", value="Exibe sua ficha. Ex: `!sheet`", inline=False)
+    embed.add_field(name="!add_move [nome_do_golpe]", value="Adiciona golpe especial. Ex: `!add_move Meteoro de Pégaso`", inline=False)
+    embed.add_field(name="!add_talent [nome_do_talento]", value="Adiciona talento. Ex: `!add_talent Sentido Cosmo`", inline=False)
+    embed.add_field(name="!remove_move [nome_do_golpe]", value="Remove golpe especial. Ex: `!remove_move Meteoro`", inline=False)
+    embed.add_field(name="!update_hp [novo_pv]", value="Atualiza PV. Ex: `!update_hp 100`", inline=False)
+    embed.add_field(name="!roll [atributo] [descrição]", value="Rola dado. Ex: `!roll COS Explosão estelar`", inline=False)
+    embed.add_field(name="!initiative", value="Calcula iniciativa. Ex: `!initiative`", inline=False)
+    embed.add_field(name="!attack_physical [target_id]", value="Ataque físico. Ex: `!attack_physical 123`", inline=False)
+    embed.add_field(name="!special_move [nome] [target_id]", value="Golpe especial. Ex: `!special_move Meteoro 123`", inline=False)
+    embed.add_field(name="!add_xp [valores]", value="Adiciona XP. Ex: `!add_xp 40 10`", inline=False)
+    embed.add_field(name="!calc_master_xp", value="XP para Mestre/Ouro. Ex: `!calc_master_xp`", inline=False)
     embed.set_footer(text="CosmoBot - Protegendo Athena!")
+
     try:
         await ctx.author.send(embed=embed)
         await ctx.send(f"📩 {ctx.author.mention}, comandos enviados por DM!")
     except discord.Forbidden:
         await ctx.send("⚠️ Ative DMs de servidores para ver os comandos!")
 
-# --- Resto dos comandos já está com a identação correta ---
-# (create_character, sheet, add_move, add_talent, remove_move, update_hp,
-# roll, initiative, attack_physical, special_move, add_xp, calc_master_xp, etc.)
-
 # Logs para diagnóstico
 @bot.event
 async def on_message(message):
+    if message.author == bot.user:
+        return
     print(f"📩 Mensagem recebida: {message.content} - Autor: {message.author}")
     await bot.process_commands(message)
 
 @bot.event
 async def on_command_error(ctx, error):
     print(f"❌ Erro no comando: {error}")
+    await ctx.send(f"⚠️ Erro: {error}")
 
+# Mantém o bot vivo no Replit
 keep_alive()
 
+# Executar bot
 token = os.getenv("BOT_TOKEN")
 if token is None:
     print("❌ ERRO: BOT_TOKEN não encontrado!")
