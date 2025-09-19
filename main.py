@@ -386,4 +386,7 @@ async def help(ctx):
 keep_alive()
 
 # --- INICIAR BOT ---
-bot.run(os.getenv("DISCORD_TOKEN"))
+token = os.getenv("BOT_TOKEN")
+print("Token carregado:", token)
+bot.run(token)
+
